@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ŞansX - Telegram Mini App</title>
+  <!-- Telegram WebApp SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <!-- Firebase Scripts -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <!-- Google Fonts & Canvas Confetti -->
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+
+  <style>
+    :root {
+      --neon-yellow: #ffe600;
+      --neon-gold: #ffaa00;
+      --dark-bg: #0a0a0c;
+      --card-bg: #141419;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    body {
+      background-color: var(--dark-bg);
+      color: #fff;
+      font-family: 'Poppins', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      overflow-x: hidden;
+    }
+
+    /* Qarşılama Animasiyası Overlay */
+    #welcome-overlay {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(10, 10, 12, 0.95);
+      backdrop-filter: blur(10px);
+      z-index: 999;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      animation: fadeOut 0.8s ease 2.5s forwards;
+    }
+    .welcome-text {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 2.2rem;
+      text-align: center;
+      animation: zoomIn 1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .brand-yellow {
+      color: var(--neon-yellow);
+      text-shadow: 0 0 15px rgba(255, 230, 0, 0.8), 0 0 30px rgba(255, 230, 0, 0.4);
+      font-weight: 900;
+    }
+    .brand-white {
+      color: #ffffff;
+      text-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
+      font-weight: 700;
+    }
+
+    /* Üst Panel (Header) */
+    header {
+      width: 100%;
+      max-width: 480px;
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(20, 20, 25, 0.8);
+      border-bottom: 1px solid rgba(255, 230, 0, 0.2);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+    .user-info { font-size: 0.9rem; color: #aaa; }
+    .jeton-box {
+      background: linear-gradient(135deg, #222, #111);
+      border: 2px solid var(--neon-yellow);
+      border-radius: 20px;
+      padding: 5px 15px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 0 10px rgba(255, 230, 0, 0.3);
+    }
+    .jeton-count {
+      font-family: 'Orbitron', sans-serif;
+      color: var(--neon-yellow);
+      font-weight: bold;
+      font-size: 1.1rem;
+    }
+
+    /* Düymələr */
+    .btn-action {
+      background: linear-gradient(45deg, var(--neon-gold), var(--neon-yellow));
+      color: #000;
+      font-weight: 800;
+      border: none;
+      padding: 12px 25px;
+      border-radius: 25px;
+      cursor: pointer;
+      font-family: 'Orbitron', sans-serif;
+      text-transform: uppercase;
+      box-shadow: 0 0 15px rgba(255, 230, 0, 0.4);
+      transition: all 0.3s;
+      text-decoration: none;
+      display: inline-block;
+      margin-top: 10px;
+    }
+    .btn-action:active { transform: scale(0.95); }
+
+    /* Çarx Bölməsi */
+    .wheel-container {
+      position: relative;
+      margin: 30px 0;
+      width: 320px;
+      height: 320px;
+    }
+    #wheelCanvas {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      box-shadow: 0 0 25px rgba(255, 230, 0, 0.2), inset 0 0 15px #000;
+    }
+    .pointer {
+      position: absolute;
+      top: -15px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0; height: 0;
+      border-left: 15px solid transparent;
+      border-right: 15px solid transparent;
+      border-top: 25px solid var(--neon-yellow);
+      z-index: 10;
+      filter: drop-shadow(0 0 5px var(--neon-yellow));
+    }
+
+    /* Qanunvericilik və Haqqımızda */
+    .info-section {
+      width: 90%;
+      max-width: 480px;
+      background: var(--card-bg);
+      border: 1px solid rgba(255,255,255,0.05);
+      border-radius: 12px;
+      padding: 15px;
+      margin: 15px 0;
+      font-size: 0.8rem;
+      color: #888;
+      text-align: center;
+      line-height: 1.4;
+    }
+
+    .social-link {
+      display: block;
+      color: var(--neon-yellow);
+      text-decoration: none;
+      font-weight: 600;
+      margin-top: 8px;
+    }
+
+    /* Animasiyalar */
+    @keyframes zoomIn {
+      from { transform: scale(0.5); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    @keyframes fadeOut {
+      to { opacity: 0; visibility: hidden; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Qarşılama Ekranı -->
+  <div id="welcome-overlay">
+    <div class="welcome-text">
+      <span class="brand-yellow">ŞansX</span> <span class="brand-white">Xoş Gəldiniz</span>
+    </div>
+  </div>
+
+  <!-- Üst Panel -->
+  <header>
+    <div class="user-info">
+      İD: <span id="user-tg-id">Yüklənir...</span>
+    </div>
+    <div class="jeton-box">
+      <span>🪙</span>
+      <span class="jeton-count" id="jeton-display">0</span>
+    </div>
+  </header>
+
+  <!-- Çarx Zonu -->
+  <div class="wheel-container">
+    <div class="pointer"></div>
+    <canvas id="wheelCanvas" width="400" height="400"></canvas>
+  </div>
+
+  <button class="btn-action" id="spinBtn" onclick="spinWheel()">ÇARXI FİRLAT</button>
+  <a href="https://t.me/sansxadmin" target="_blank" class="btn-action" style="background: #222; color: var(--neon-yellow); border: 1px solid var(--neon-yellow);">Jeton Al</a>
+
+  <!-- Məlumat Və Şərtlər -->
+  <div class="info-section">
+    <p><strong>Haqqımızda & Hüquqi Məlumat:</strong> Platformamız yerli və beynəlxalq qanunvericiliyin tələblərinə tam uyğun olaraq əyləncə məqsədilə fəaliyyət gösterir.</p>
+    <a href="https://t.me/+LQVyKseQ6foxNGFh" target="_blank" class="social-link">📢 Rəsmi Telegram Kanalımıza Qoşulun</a>
+  </div>
+
+  <!-- Səslər -->
+  <audio id="spinSound" src="https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3"></audio>
+  <audio id="winSound" src="https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3"></audio>
+  <audio id="boomSound" src="https://assets.mixkit.co/active_storage/sfx/220/220-preview.mp3"></audio>
+
+  <script>
+    // 1. Firebase Konfiqurasiyası
+    const firebaseConfig = {
+      databaseURL: "https://ugur-8496e-default-rtdb.firebaseio.com/"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // 2. Telegram İD Təyini
+    let tg = window.Telegram ? window.Telegram.WebApp : null;
+    if (tg) tg.expand();
+    
+    let userId = tg && tg.initDataUnsafe && tg.initDataUnsafe.user 
+      ? tg.initDataUnsafe.user.id 
+      : "TEST_USER_12345"; // Test üçün
+
+    document.getElementById('user-tg-id').innerText = userId;
+
+    let userJeton = 0;
+    let isBanned = false;
+
+    // 3. İstifadəçi Məlumatlarını Sinxronlaşdırma
+    const userRef = db.ref('users/' + userId);
+    userRef.on('value', (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        if (data.banned) {
+          document.body.innerHTML = "<h1 style='color:red; text-align:center; margin-top:50%;'>HESABINIZ BANLANIB!</h1>";
+          return;
+        }
+        userJeton = data.jeton || 0;
+        document.getElementById('jeton-display').innerText = userJeton;
+      } else {
+        // Yeni İstifadəçi Qeydiyyatı
+        userRef.set({
+          tgId: userId,
+          jeton: 5, // Başlanğıc hədiyyəsi
+          prizes: [],
+          banned: false
+        });
+      }
+    });
+
+    // 4. Çarx Parametrləri Və Mükafatlar
+    const canvas = document.getElementById('wheelCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Şəkilləri daxil etmək üçün 'img' parametri saxlanılıb (Boş buraxılıb ki, özünüz şəkil path yazasınız)
+    let prizes = [
+      { label: "Redmi Note 14", chance: 0, color: "#111", isBomb: false, img: "" },
+      { label: "60 PUBG UC", chance: 0, color: "#ffe600", isBomb: false, img: "" },
+      { label: "60 PUBG UC", chance: 0, color: "#111", isBomb: false, img: "" },
+      { label: "500 Tiktok Jeton", chance: 0, color: "#ffe600", isBomb: false, img: "" },
+      { label: "500 Tiktok Jeton", chance: 0, color: "#111", isBomb: false, img: "" },
+      { label: "500 Tiktok Jeton", chance: 0, color: "#ffe600", isBomb: false, img: "" },
+      { label: "5 Free Spin", chance: 40, color: "#111", isBomb: false, img: "" },
+      { label: "5 Free Spin", chance: 40, color: "#ffe600", isBomb: false, img: "" },
+      { label: "5 Free Spin", chance: 40, color: "#111", isBomb: false, img: "" },
+      { label: "20 AZN Mükafat", chance: 0, color: "#ffe600", isBomb: false, img: "" },
+      { label: "BOMBA", chance: 95, color: "#000", isBomb: true, img: "" },
+      { label: "BOMBA", chance: 95, color: "#ffe600", isBomb: true, img: "" },
+      { label: "BOMBA", chance: 95, color: "#000", isBomb: true, img: "" },
+      { label: "BOMBA", chance: 95, color: "#ffe600", isBomb: true, img: "" },
+      { label: "BOMBA", chance: 95, color: "#000", isBomb: true, img: "" },
+      { label: "BOMBA", chance: 95, color: "#ffe600", isBomb: true, img: "" },
+      { label: "BOMBA", chance: 95, color: "#000", isBomb: true, img: "" },
+      { label: "BOMBA", chance: 95, color: "#ffe600", isBomb: true, img: "" },
+      { label: "BOMBA", chance: 95, color: "#000", isBomb: true, img: "" },
+      { label: "BOMBA", chance: 95, color: "#ffe600", isBomb: true, img: "" }
+    ];
+
+    // Şansları Admin Paneldən Canlı Oxumaq
+    db.ref('settings/prizes').on('value', (snap) => {
+      const data = snap.val();
+      if (data) prizes = data;
+      drawWheel();
+    });
+
+    const numSlices = prizes.length;
+    const sliceAngle = (2 * Math.PI) / numSlices;
+    let currentAngle = 0;
+    let isSpinning = false;
+
+    // Çarxı Çəkmək (Sarı Və Qara Konsepsiyası)
+    function drawWheel() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (let i = 0; i < numSlices; i++) {
+        const angle = currentAngle + i * sliceAngle;
+        
+        ctx.beginPath();
+        ctx.moveTo(200, 200);
+        ctx.arc(200, 200, 190, angle, angle + sliceAngle);
+        ctx.fillStyle = prizes[i].color === "#ffe600" ? "#ffe600" : "#141419";
+        ctx.fill();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "#ffe600";
+        ctx.stroke();
+
+        // Mətnlərin Yazılması
+        ctx.save();
+        ctx.translate(200, 200);
+        ctx.rotate(angle + sliceAngle / 2);
+        ctx.textAlign = "right";
+        ctx.fillStyle = prizes[i].color === "#ffe600" ? "#000" : "#fff";
+        ctx.font = "bold 11px Poppins";
+        
+        /* ŞƏKİL ƏLAVƏ ETMƏK ÜÇÜN DÜZƏLİŞ BÖLMƏSİ:
+           Eger sekil path-i təyin etsəniz aşağıdaki şəkil kodu aktiv olacaq.
+        */
+        if(prizes[i].img) {
+          let imgObj = new Image();
+          imgObj.src = prizes[i].img;
+          ctx.drawImage(imgObj, 100, -10, 20, 20);
+        }
+
+        ctx.fillText(prizes[i].label, 170, 4);
+        ctx.restore();
+      }
+    }
+
+    // 5. Çarxı Fırlatmaq Məntiqi (Ehtimal Sistemi İlə)
+    function spinWheel() {
+      if (isSpinning) return;
+      if (userJeton < 1) {
+        alert("Kifayət qədər jetonunuz yoxdur!");
+        return;
+      }
+
+      // Jetonu Azalt
+      userJeton--;
+      userRef.update({ jeton: userJeton });
+
+      isSpinning = true;
+      document.getElementById('spinSound').play();
+
+      // Şanslara Görə Seçim (Weighted Random)
+      let selectedIndex = getWeightedPrizeIndex();
+
+      // Hesablanmış Bucağa Fırlatma
+      let stopAngle = (3 * Math.PI / 2) - (selectedIndex * sliceAngle) - (sliceAngle / 2);
+      let extraTurns = 5 * 2 * Math.PI; // 5 tam dövr
+      let targetRotation = extraTurns + stopAngle;
+
+      let startTime = null;
+      let duration = 5000; // 5 Saniyə
+
+      function animateSpin(timestamp) {
+        if (!startTime) startTime = timestamp;
+        let progress = (timestamp - startTime) / duration;
+
+        if (progress < 1) {
+          // Ease-out effekti
+          let easeOut = 1 - Math.pow(1 - progress, 3);
+          currentAngle = easeOut * targetRotation;
+          drawWheel();
+          requestAnimationFrame(animateSpin);
+        } else {
+          currentAngle = targetRotation % (2 * Math.PI);
+          drawWheel();
+          isSpinning = false;
+          handleWin(prizes[selectedIndex]);
+        }
+      }
+      requestAnimationFrame(animateSpin);
+    }
+
+    // Şans Faizinə Görə Mükafat Seçimi
+    function getWeightedPrizeIndex() {
+      let totalWeight = prizes.reduce((sum, p) => sum + p.chance, 0);
+      let randomNum = Math.random() * totalWeight;
+      let weightSum = 0;
+
+      for (let i = 0; i < prizes.length; i++) {
+        weightSum += prizes[i].chance;
+        if (randomNum <= weightSum) return i;
+      }
+      return prizes.length - 1; // Default sonuncu
+    }
+
+    // Uduş Nəticəsi
+    function handleWin(prize) {
+      document.getElementById('spinSound').pause();
+      document.getElementById('spinSound').currentTime = 0;
+
+      if (prize.isBomb) {
+        document.getElementById('boomSound').play();
+        alert("💥 BOOM! Təəssüf ki, bomba çıxdı!");
+      } else {
+        document.getElementById('winSound').play();
+        confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+        alert("🎉 TƏBRİKLƏR! Qazandınız: " + prize.label);
+        
+        // Verilənlər bazasına uduşu yazmaq
+        userRef.child('prizes').push({
+          prize: prize.label,
+          date: new Date().toISOString()
+        });
+      }
+    }
+
+    drawWheel();
+  </script>
+</body>
+</html>
