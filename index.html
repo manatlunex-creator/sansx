@@ -68,18 +68,31 @@
       border-bottom: 1px solid rgba(255, 230, 0, 0.2);
     }
     .user-info { font-size: 0.85rem; color: #aaa; }
-    .jeton-box {
+    .balance-group {
+      display: flex;
+      gap: 10px;
+    }
+    .jeton-box, .azn-box {
       background: #111;
       border: 2px solid var(--neon-yellow);
       border-radius: 20px;
-      padding: 5px 15px;
+      padding: 5px 12px;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
+      font-size: 0.85rem;
+    }
+    .azn-box {
+      border-color: #28a745;
     }
     .jeton-count {
       font-family: 'Orbitron', sans-serif;
       color: var(--neon-yellow);
+      font-weight: bold;
+    }
+    .azn-count {
+      font-family: 'Orbitron', sans-serif;
+      color: #28a745;
       font-weight: bold;
     }
 
@@ -243,9 +256,15 @@
   <!-- Header -->
   <header>
     <div class="user-info">İD: <span id="user-tg-id">Yüklənir...</span></div>
-    <div class="jeton-box">
-      <span>🪙</span>
-      <span class="jeton-count" id="jeton-display">0</span>
+    <div class="balance-group">
+      <div class="azn-box">
+        <span>💵</span>
+        <span class="azn-count" id="azn-display">0</span> <small style="color:#28a745;">AZN</small>
+      </div>
+      <div class="jeton-box">
+        <span>🪙</span>
+        <span class="jeton-count" id="jeton-display">0</span>
+      </div>
     </div>
   </header>
 
@@ -285,52 +304,46 @@
     <a href="https://t.me/+LQVyKseQ6foxNGFh" target="_blank" class="social-link">📢 Rəsmi Telegram Kanalımıza Qoşulun</a>
   </div>
 
-  <!-- Səslər -->
+  <!-- Kazino Səs Effektləri -->
   <audio id="spinSound" src="https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3"></audio>
-  <audio id="winSound" src="https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3"></audio>
+  <audio id="winSound" src="https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3"></audio>
   <audio id="boomSound" src="https://assets.mixkit.co/active_storage/sfx/220/220-preview.mp3"></audio>
 
   <script>
-    // 1. Firebase Konfiqurasiyası
     const firebaseConfig = { databaseURL: "https://ugur-8496e-default-rtdb.firebaseio.com/" };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // Telegram Bot istifadəçi adınız (Olan adı bura yazın)
     const BOT_USERNAME = "Sansx_Bot"; 
 
-    // 2. Telegram ID və Referal Yoxlanışı
     let tg = window.Telegram ? window.Telegram.WebApp : null;
     if (tg) tg.expand();
     
     let userId = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : "TEST_USER_12345";
     document.getElementById('user-tg-id').innerText = userId;
 
-    // Referal Linkini Hazırla
     let myRefLink = `https://t.me/${BOT_USERNAME}?start=${userId}`;
     document.getElementById('refLinkInput').value = myRefLink;
 
     let userJeton = 0;
+    let userBalanceAzn = 0;
 
-    // Start parametrindən gələn dəvətçi İD-si
     let startParam = tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param ? tg.initDataUnsafe.start_param : null;
 
-    // 3. İstifadəçi Hesabını Oxu Və Ya Yarat
     const userRef = db.ref('users/' + userId);
     userRef.once('value', (snapshot) => {
       const data = snapshot.val();
       if (!data) {
-        // Yeni İstifadəçi Yarat
         userRef.set({
           tgId: userId,
           jeton: 5,
+          balanceAzn: 0,
           prizes: [],
           banned: false,
           referralsCount: 0,
           pendingRef: 0,
           referredBy: startParam || null
         }).then(() => {
-          // Əgər kiminsə linki ilə gəlibsə dəvətçiyə xal ver
           if (startParam && startParam != userId) {
             processReferral(startParam);
           }
@@ -338,7 +351,6 @@
       }
     });
 
-    // İstifadəçi Realtime Dinləyici
     userRef.on('value', (snapshot) => {
       const data = snapshot.val();
       if (data) {
@@ -347,7 +359,9 @@
           return;
         }
         userJeton = data.jeton || 0;
+        userBalanceAzn = data.balanceAzn || 0;
         document.getElementById('jeton-display').innerText = userJeton;
+        document.getElementById('azn-display').innerText = userBalanceAzn;
         
         let pending = data.pendingRef || 0;
         let total = data.referralsCount || 0;
@@ -356,15 +370,12 @@
       }
     });
 
-    // Referal Sistemi Məntiqi (+1 Jeton vermək)
     function processReferral(referrerId) {
       const refUserRef = db.ref('users/' + referrerId);
       refUserRef.transaction((user) => {
         if (user) {
           user.referralsCount = (user.referralsCount || 0) + 1;
           user.pendingRef = (user.pendingRef || 0) + 1;
-          
-          // 5 Dost Tamamlandıqda
           if (user.pendingRef >= 5) {
             user.pendingRef = user.pendingRef - 5;
             user.jeton = (user.jeton || 0) + 1;
@@ -374,7 +385,6 @@
       });
     }
 
-    // Linki Kopyalamaq
     function copyRefLink() {
       const copyText = document.getElementById("refLinkInput");
       copyText.select();
@@ -383,23 +393,21 @@
       showModal("UĞURLU!", "Dəvət linkiniz kopyalandı! Dostlarınıza göndərə bilərsiniz.", "📋");
     }
 
-    // 4. Çarx Mükafatları (Dəqiq Fayl Uzantıları İlə)
     let prizes = [
-      { label: "Redmi Note 14", chance: 0, color: "#ffe600", textColor: "#000", isBomb: false, img: "img/redmi.jpeg", icon: "📱" },
-      { label: "BOMBA", chance: 95, color: "#141419", textColor: "#fff", isBomb: true, img: "img/bomba.png", icon: "💣" },
-      { label: "60 PUBG UC", chance: 0, color: "#ffe600", textColor: "#000", isBomb: false, img: "img/uc.webp", icon: "🎮" },
-      { label: "BOMBA", chance: 95, color: "#141419", textColor: "#fff", isBomb: true, img: "img/bomba.png", icon: "💣" },
-      { label: "500 Tiktok", chance: 0, color: "#ffe600", textColor: "#000", isBomb: false, img: "img/tiktok.webp", icon: "🪙" },
-      { label: "BOMBA", chance: 95, color: "#141419", textColor: "#fff", isBomb: true, img: "img/bomba.png", icon: "💣" },
-      { label: "5 Free Spin", chance: 40, color: "#ffe600", textColor: "#000", isBomb: false, img: "img/spin.jpg", icon: "🎰" },
-      { label: "BOMBA", chance: 95, color: "#141419", textColor: "#fff", isBomb: true, img: "img/bomba.png", icon: "💣" },
-      { label: "20 AZN", chance: 0, color: "#ffe600", textColor: "#000", isBomb: false, img: "img/azn.jpg", icon: "💵" },
-      { label: "BOMBA", chance: 95, color: "#141419", textColor: "#fff", isBomb: true, img: "img/bomba.png", icon: "💣" },
-      { label: "5 Free Spin", chance: 40, color: "#ffe600", textColor: "#000", isBomb: false, img: "img/spin.jpg", icon: "🎰" },
-      { label: "BOMBA", chance: 95, color: "#141419", textColor: "#fff", isBomb: true, img: "img/bomba.png", icon: "💣" }
+      { label: "Redmi Note 14", chance: 0, color: "#ffe600", textColor: "#000", isBomb: false, isAzn: false, amount: 0, img: "img/redmi.jpeg", icon: "📱" },
+      { label: "BOMBA", chance: 95, color: "#141419", textColor: "#fff", isBomb: true, isAzn: false, amount: 0, img: "img/bomba.png", icon: "💣" },
+      { label: "60 PUBG UC", chance: 0, color: "#ffe600", textColor: "#000", isBomb: false, isAzn: false, amount: 0, img: "img/uc.webp", icon: "🎮" },
+      { label: "BOMBA", chance: 95, color: "#141419", textColor: "#fff", isBomb: true, isAzn: false, amount: 0, img: "img/bomba.png", icon: "💣" },
+      { label: "500 Tiktok", chance: 0, color: "#ffe600", textColor: "#000", isBomb: false, isAzn: false, amount: 0, img: "img/tiktok.webp", icon: "🪙" },
+      { label: "BOMBA", chance: 95, color: "#141419", textColor: "#fff", isBomb: true, isAzn: false, amount: 0, img: "img/bomba.png", icon: "💣" },
+      { label: "5 Free Spin", chance: 40, color: "#ffe600", textColor: "#000", isBomb: false, isAzn: false, amount: 0, img: "img/spin.jpg", icon: "🎰" },
+      { label: "BOMBA", chance: 95, color: "#141419", textColor: "#fff", isBomb: true, isAzn: false, amount: 0, img: "img/bomba.png", icon: "💣" },
+      { label: "20 AZN", chance: 0, color: "#ffe600", textColor: "#000", isBomb: false, isAzn: true, amount: 20, img: "img/azn.jpg", icon: "💵" },
+      { label: "BOMBA", chance: 95, color: "#141419", textColor: "#fff", isBomb: true, isAzn: false, amount: 0, img: "img/bomba.png", icon: "💣" },
+      { label: "5 Free Spin", chance: 40, color: "#ffe600", textColor: "#000", isBomb: false, isAzn: false, amount: 0, img: "img/spin.jpg", icon: "🎰" },
+      { label: "BOMBA", chance: 95, color: "#141419", textColor: "#fff", isBomb: true, isAzn: false, amount: 0, img: "img/bomba.png", icon: "💣" }
     ];
 
-    // Admin Şansları Dinlə
     db.ref('settings/prizes').on('value', (snap) => {
       const data = snap.val();
       if (data) {
@@ -407,7 +415,6 @@
       }
     });
 
-    // Şəkilləri Yüklə
     const loadedImages = {};
     prizes.forEach((p, idx) => {
       if (p.img) {
@@ -425,7 +432,6 @@
     let currentAngle = 0;
     let isSpinning = false;
 
-    // Çarxı Çəkmək
     function drawWheel() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       for (let i = 0; i < numSlices; i++) {
@@ -444,17 +450,16 @@
         ctx.translate(200, 200);
         ctx.rotate(angle + sliceAngle / 2);
         
-        // Mətn
         ctx.textAlign = "right";
         ctx.fillStyle = prizes[i].textColor;
         ctx.font = "bold 12px Orbitron, sans-serif";
-        ctx.fillText(prizes[i].label, 130, 4);
+        ctx.fillText(prizes[i].label, 125, 4);
 
-        // Şəkil
-        if (loadedImages[i] && loadedImages[i].complete && loadedImages[i].naturalWidth !== 0) {
-          ctx.drawImage(loadedImages[i], 140, -10, 20, 20);
+        let imgObj = loadedImages[i];
+        if (imgObj && imgObj.complete && imgObj.naturalWidth !== 0) {
+          ctx.drawImage(imgObj, 135, -12, 24, 24);
         } else {
-          ctx.font = "14px serif";
+          ctx.font = "16px sans-serif";
           ctx.fillText(prizes[i].icon, 155, 5);
         }
 
@@ -462,7 +467,6 @@
       }
     }
 
-    // Çarxı Fırlatmaq
     function spinWheel() {
       if (isSpinning) return;
       if (userJeton < 1) {
@@ -526,17 +530,30 @@
       document.getElementById('spinSound').pause();
 
       if (prize.isBomb) {
+        document.getElementById('boomSound').currentTime = 0;
         document.getElementById('boomSound').play();
         showModal("BOOM!", "Təəssüf ki, bomba çıxdı! Bəxtinizi bir daha sınayın.", "💥");
       } else {
-        document.getElementById('winSound').play();
-        confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
-        showModal("TƏBRİKLƏR!", "Qazandınız: " + prize.label, "🎉");
+        const winSound = document.getElementById('winSound');
+        winSound.currentTime = 0;
+        winSound.play();
+
+        confetti({ particleCount: 150, spread: 90, origin: { y: 0.6 } });
+        showModal("🎰 KAZİNO UDUŞU!", "Təbriklər! Qazandınız: " + prize.label, "🎉");
         
-        userRef.child('prizes').push({
-          prize: prize.label,
-          date: new Date().toISOString()
-        });
+        let updates = {
+          prizes: userRef.child('prizes').push({ prize: prize.label, date: new Date().toISOString() })
+        };
+
+        // Əgər Pul Udubsa AZN Balansını Artır
+        if (prize.isAzn) {
+          userRef.update({ balanceAzn: userBalanceAzn + prize.amount });
+        }
+        
+        // Free Spin Udubsa Jeton Ver
+        if (prize.label.includes("Free Spin")) {
+          userRef.update({ jeton: userJeton + 5 });
+        }
       }
     }
 
