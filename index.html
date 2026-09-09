@@ -28,9 +28,10 @@
       flex-direction: column;
       align-items: center;
       overflow-x: hidden;
+      padding-bottom: 30px;
     }
 
-    /* Qarşılama Animasiyası Overlay */
+    /* Qarşılama Overlay */
     #welcome-overlay {
       position: fixed;
       top: 0; left: 0; width: 100%; height: 100%;
@@ -109,7 +110,7 @@
     /* Çarx */
     .wheel-container {
       position: relative;
-      margin: 25px 0;
+      margin: 20px 0;
       width: 330px;
       height: 330px;
     }
@@ -131,7 +132,61 @@
       z-index: 10;
     }
 
-    /* Custom Popup (Alert Əvəzi) */
+    /* Referal Bölməsi */
+    .ref-card {
+      width: 90%;
+      max-width: 480px;
+      background: var(--card-bg);
+      border: 1px solid rgba(255, 230, 0, 0.3);
+      border-radius: 15px;
+      padding: 15px;
+      margin-top: 20px;
+      text-align: center;
+    }
+    .ref-title {
+      font-family: 'Orbitron', sans-serif;
+      color: var(--neon-yellow);
+      font-size: 0.95rem;
+      margin-bottom: 8px;
+    }
+    .ref-desc {
+      font-size: 0.8rem;
+      color: #ccc;
+      margin-bottom: 12px;
+    }
+    .ref-box {
+      display: flex;
+      gap: 8px;
+      background: #0a0a0c;
+      padding: 8px;
+      border-radius: 10px;
+      border: 1px dashed #444;
+    }
+    .ref-input {
+      background: transparent;
+      border: none;
+      color: var(--neon-yellow);
+      font-size: 0.75rem;
+      width: 100%;
+      outline: none;
+    }
+    .ref-btn {
+      background: var(--neon-yellow);
+      color: #000;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-weight: bold;
+      font-size: 0.75rem;
+      cursor: pointer;
+    }
+    .ref-progress {
+      margin-top: 10px;
+      font-size: 0.8rem;
+      color: #aaa;
+    }
+
+    /* Custom Modal */
     #custom-modal {
       display: none;
       position: fixed;
@@ -164,7 +219,7 @@
       background: var(--card-bg);
       border-radius: 12px;
       padding: 15px;
-      margin: 15px 0;
+      margin-top: 15px;
       font-size: 0.8rem;
       color: #888;
       text-align: center;
@@ -194,7 +249,7 @@
     </div>
   </header>
 
-  <!-- Çarx Zonu -->
+  <!-- Çarx Bölməsi -->
   <div class="wheel-container">
     <div class="pointer"></div>
     <canvas id="wheelCanvas" width="400" height="400"></canvas>
@@ -203,7 +258,18 @@
   <button class="btn-action" id="spinBtn" onclick="spinWheel()">ÇARXI FİRLAT</button>
   <a href="https://t.me/sansxadmin" target="_blank" class="btn-action" style="background: #111; color: var(--neon-yellow); border: 1px solid var(--neon-yellow);">Jeton Al</a>
 
-  <!-- Custom Popup (Sayt Adı Çıxmayan Bildiriş) -->
+  <!-- Referal Sistem Kartı -->
+  <div class="ref-card">
+    <div class="ref-title">👥 DOSTUNU DƏVƏT ET - JETON QAZAN</div>
+    <div class="ref-desc">Hər 5 dost dəvətinə <b>1 Pulsuz Jeton</b> avtomatik hesabınıza yüklənir!</div>
+    <div class="ref-box">
+      <input type="text" id="refLinkInput" class="ref-input" readonly value="Yüklənir...">
+      <button class="ref-btn" onclick="copyRefLink()">Nüsxələ</button>
+    </div>
+    <div class="ref-progress">Mövcud dəvətlər: <b id="refCount" style="color:var(--neon-yellow);">0</b> / 5 (Ümumi: <span id="totalRefCount">0</span>)</div>
+  </div>
+
+  <!-- Custom Popup Modal -->
   <div id="custom-modal">
     <div class="modal-content">
       <div class="modal-icon" id="modalIcon">🎁</div>
@@ -213,7 +279,7 @@
     </div>
   </div>
 
-  <!-- Məlumat Və Şərtlər -->
+  <!-- Haqqında Və Şərtlər -->
   <div class="info-section">
     <p><strong>Haqqımızda & Hüquqi Məlumat:</strong> Platformamız yerli və beynəlxalq qanunvericiliyin tələblərinə tam uyğun olaraq əyləncə məqsədilə fəaliyyət gösterir.</p>
     <a href="https://t.me/+LQVyKseQ6foxNGFh" target="_blank" class="social-link">📢 Rəsmi Telegram Kanalımıza Qoşulun</a>
@@ -230,16 +296,49 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // 2. Telegram ID Təyini
+    // Telegram Bot istifadəçi adınız (Olan adı bura yazın)
+    const BOT_USERNAME = "Sansx_Bot"; 
+
+    // 2. Telegram ID və Referal Yoxlanışı
     let tg = window.Telegram ? window.Telegram.WebApp : null;
     if (tg) tg.expand();
+    
     let userId = tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : "TEST_USER_12345";
     document.getElementById('user-tg-id').innerText = userId;
 
+    // Referal Linkini Hazırla
+    let myRefLink = `https://t.me/${BOT_USERNAME}?start=${userId}`;
+    document.getElementById('refLinkInput').value = myRefLink;
+
     let userJeton = 0;
 
-    // 3. İstifadəçi Məlumatı
+    // Start parametrindən gələn dəvətçi İD-si
+    let startParam = tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param ? tg.initDataUnsafe.start_param : null;
+
+    // 3. İstifadəçi Hesabını Oxu Və Ya Yarat
     const userRef = db.ref('users/' + userId);
+    userRef.once('value', (snapshot) => {
+      const data = snapshot.val();
+      if (!data) {
+        // Yeni İstifadəçi Yarat
+        userRef.set({
+          tgId: userId,
+          jeton: 5,
+          prizes: [],
+          banned: false,
+          referralsCount: 0,
+          pendingRef: 0,
+          referredBy: startParam || null
+        }).then(() => {
+          // Əgər kiminsə linki ilə gəlibsə dəvətçiyə xal ver
+          if (startParam && startParam != userId) {
+            processReferral(startParam);
+          }
+        });
+      }
+    });
+
+    // İstifadəçi Realtime Dinləyici
     userRef.on('value', (snapshot) => {
       const data = snapshot.val();
       if (data) {
@@ -249,24 +348,54 @@
         }
         userJeton = data.jeton || 0;
         document.getElementById('jeton-display').innerText = userJeton;
-      } else {
-        userRef.set({ tgId: userId, jeton: 5, prizes: [], banned: false });
+        
+        let pending = data.pendingRef || 0;
+        let total = data.referralsCount || 0;
+        document.getElementById('refCount').innerText = pending;
+        document.getElementById('totalRefCount').innerText = total;
       }
     });
 
-    // 4. Çarx Mükafatları (İkon və Şəkil fallback ilə)
+    // Referal Sistemi Məntiqi (+1 Jeton vermək)
+    function processReferral(referrerId) {
+      const refUserRef = db.ref('users/' + referrerId);
+      refUserRef.transaction((user) => {
+        if (user) {
+          user.referralsCount = (user.referralsCount || 0) + 1;
+          user.pendingRef = (user.pendingRef || 0) + 1;
+          
+          // 5 Dost Tamamlandıqda
+          if (user.pendingRef >= 5) {
+            user.pendingRef = user.pendingRef - 5;
+            user.jeton = (user.jeton || 0) + 1;
+          }
+        }
+        return user;
+      });
+    }
+
+    // Linki Kopyalamaq
+    function copyRefLink() {
+      const copyText = document.getElementById("refLinkInput");
+      copyText.select();
+      copyText.setSelectionRange(0, 99999);
+      navigator.clipboard.writeText(copyText.value);
+      showModal("UĞURLU!", "Dəvət linkiniz kopyalandı! Dostlarınıza göndərə bilərsiniz.", "📋");
+    }
+
+    // 4. Çarx Mükafatları (Dəqiq Fayl Uzantıları İlə)
     let prizes = [
-      { label: "Redmi Note 14", chance: 0, color: "#ffe600", textColor: "#000", isBomb: false, img: "img/redmi.png", icon: "📱" },
+      { label: "Redmi Note 14", chance: 0, color: "#ffe600", textColor: "#000", isBomb: false, img: "img/redmi.jpeg", icon: "📱" },
       { label: "BOMBA", chance: 95, color: "#141419", textColor: "#fff", isBomb: true, img: "img/bomba.png", icon: "💣" },
-      { label: "60 PUBG UC", chance: 0, color: "#ffe600", textColor: "#000", isBomb: false, img: "img/uc.png", icon: "🎮" },
+      { label: "60 PUBG UC", chance: 0, color: "#ffe600", textColor: "#000", isBomb: false, img: "img/uc.webp", icon: "🎮" },
       { label: "BOMBA", chance: 95, color: "#141419", textColor: "#fff", isBomb: true, img: "img/bomba.png", icon: "💣" },
-      { label: "500 Tiktok", chance: 0, color: "#ffe600", textColor: "#000", isBomb: false, img: "img/tiktok.png", icon: "🪙" },
+      { label: "500 Tiktok", chance: 0, color: "#ffe600", textColor: "#000", isBomb: false, img: "img/tiktok.webp", icon: "🪙" },
       { label: "BOMBA", chance: 95, color: "#141419", textColor: "#fff", isBomb: true, img: "img/bomba.png", icon: "💣" },
-      { label: "5 Free Spin", chance: 40, color: "#ffe600", textColor: "#000", isBomb: false, img: "img/spin.png", icon: "🎰" },
+      { label: "5 Free Spin", chance: 40, color: "#ffe600", textColor: "#000", isBomb: false, img: "img/spin.jpg", icon: "🎰" },
       { label: "BOMBA", chance: 95, color: "#141419", textColor: "#fff", isBomb: true, img: "img/bomba.png", icon: "💣" },
-      { label: "20 AZN", chance: 0, color: "#ffe600", textColor: "#000", isBomb: false, img: "img/azn.png", icon: "💵" },
+      { label: "20 AZN", chance: 0, color: "#ffe600", textColor: "#000", isBomb: false, img: "img/azn.jpg", icon: "💵" },
       { label: "BOMBA", chance: 95, color: "#141419", textColor: "#fff", isBomb: true, img: "img/bomba.png", icon: "💣" },
-      { label: "5 Free Spin", chance: 40, color: "#ffe600", textColor: "#000", isBomb: false, img: "img/spin.png", icon: "🎰" },
+      { label: "5 Free Spin", chance: 40, color: "#ffe600", textColor: "#000", isBomb: false, img: "img/spin.jpg", icon: "🎰" },
       { label: "BOMBA", chance: 95, color: "#141419", textColor: "#fff", isBomb: true, img: "img/bomba.png", icon: "💣" }
     ];
 
@@ -278,7 +407,7 @@
       }
     });
 
-    // Şəkilləri Preload Et
+    // Şəkilləri Yüklə
     const loadedImages = {};
     prizes.forEach((p, idx) => {
       if (p.img) {
@@ -321,7 +450,7 @@
         ctx.font = "bold 12px Orbitron, sans-serif";
         ctx.fillText(prizes[i].label, 130, 4);
 
-        // Şəkil (Şəkil yoxdursa İkon çəkilir)
+        // Şəkil
         if (loadedImages[i] && loadedImages[i].complete && loadedImages[i].naturalWidth !== 0) {
           ctx.drawImage(loadedImages[i], 140, -10, 20, 20);
         } else {
@@ -411,7 +540,6 @@
       }
     }
 
-    // Modal Funksiyaları
     function showModal(title, msg, icon) {
       document.getElementById('modalTitle').innerText = title;
       document.getElementById('modalMsg').innerText = msg;
