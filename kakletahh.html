@@ -56,6 +56,7 @@
         <tr>
           <th>Telegram ID</th>
           <th>Jeton Sayı</th>
+          <th>Dəvət Sayı</th>
           <th>Qazandığı Hədiyyələr</th>
           <th>Status</th>
           <th>Əməliyyatlar</th>
@@ -96,7 +97,6 @@
     }
 
     function loadAdminData() {
-      // İstifadəçiləri Oxu
       db.ref('users').on('value', snap => {
         const users = snap.val();
         const tbody = document.getElementById('userTable');
@@ -105,11 +105,13 @@
         for (let id in users) {
           let u = users[id];
           let prizes = u.prizes ? Object.values(u.prizes).map(p => p.prize).join(', ') : 'Yoxdur';
+          let refCount = u.referralsCount || 0;
           
           tbody.innerHTML += `
             <tr>
               <td>${u.tgId}</td>
               <td><b>${u.jeton}</b></td>
+              <td><b style="color:#ffe600">${refCount} Nəfər</b></td>
               <td><small>${prizes}</small></td>
               <td>${u.banned ? '<span style="color:red">Banlı</span>' : '<span style="color:green">Aktiv</span>'}</td>
               <td>
@@ -124,7 +126,6 @@
         }
       });
 
-      // Çarxdakı Mükafatları və Şansları Oxu
       const defaultPrizes = [
         { label: "Redmi Note 14", chance: 0 },
         { label: "BOMBA", chance: 95 },
