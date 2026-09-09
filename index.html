@@ -300,13 +300,13 @@
 
   <!-- Haqqında Və Şərtlər -->
   <div class="info-section">
-    <p><strong>Haqqımızda & Hüquqi Məlumat:</strong> Platformamız yerli və beynəlxalq qanunvericiliyin tələblərinə tam uyğun olaraq əyləncə məqsədilə fəaliyyət gösterir.</p>
+    <p><strong>Haqqımızda & Məlumat:</strong> Platformamız yalnız əyləncə və hədiyyə kampaniyaları məqsədilə fəaliyyət göstərir.</p>
     <a href="https://t.me/+LQVyKseQ6foxNGFh" target="_blank" class="social-link">📢 Rəsmi Telegram Kanalımıza Qoşulun</a>
   </div>
 
-  <!-- Kazino Səs Effektləri -->
+  <!-- Səs Effektləri (Şən Uduş və Fırlatma Səsi) -->
   <audio id="spinSound" src="https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3"></audio>
-  <audio id="winSound" src="https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3"></audio>
+  <audio id="winSound" src="https://assets.mixkit.co/active_storage/sfx/270/270-preview.mp3"></audio>
   <audio id="boomSound" src="https://assets.mixkit.co/active_storage/sfx/220/220-preview.mp3"></audio>
 
   <script>
@@ -470,7 +470,7 @@
     function spinWheel() {
       if (isSpinning) return;
       if (userJeton < 1) {
-        showModal("⚠️ XƏTTA", "Kifayət qədər jetonunuz yoxdur!", "🪙");
+        showModal("⚠️ XƏTƏD", "Kifayət qədər jetonunuz yoxdur!", "🪙");
         return;
       }
 
@@ -532,25 +532,21 @@
       if (prize.isBomb) {
         document.getElementById('boomSound').currentTime = 0;
         document.getElementById('boomSound').play();
-        showModal("BOOM!", "Təəssüf ki, bomba çıxdı! Bəxtinizi bir daha sınayın.", "💥");
+        showModal("UĞURSUZ CƏHD", "Təəssüf ki, bəxtinizə bomba çıxdı. Növbəti dəfə uğurlar!", "💥");
       } else {
         const winSound = document.getElementById('winSound');
         winSound.currentTime = 0;
         winSound.play();
 
         confetti({ particleCount: 150, spread: 90, origin: { y: 0.6 } });
-        showModal("🎰 Əlavə Olundu!",  "Təbriklər! Qazandınız: " + prize.label, "🎉");
+        showModal("TƏBRİKLƏR!", "Möhtəşəm hədiyyə qazandınız: " + prize.label, "🎉");
         
-        let updates = {
-          prizes: userRef.child('prizes').push({ prize: prize.label, date: new Date().toISOString() })
-        };
+        userRef.child('prizes').push({ prize: prize.label, date: new Date().toISOString() });
 
-        // Əgər Pul Udubsa AZN Balansını Artır
         if (prize.isAzn) {
           userRef.update({ balanceAzn: userBalanceAzn + prize.amount });
         }
         
-        // Free Spin Udubsa Jeton Ver
         if (prize.label.includes("Free Spin")) {
           userRef.update({ jeton: userJeton + 5 });
         }
