@@ -25,17 +25,19 @@
       border-radius: 8px; cursor: pointer; font-family: 'Orbitron', sans-serif;
     }
 
-    .dashboard { display: none; max-width: 1000px; margin: 0 auto; }
+    .dashboard { display: none; max-width: 1100px; margin: 0 auto; }
     table {
       width: 100%; border-collapse: collapse; margin-top: 20px;
       background: #141419; border-radius: 10px; overflow: hidden;
     }
-    th, td { padding: 12px; border: 1px solid rgba(255,255,255,0.05); text-align: center; }
+    th, td { padding: 10px; border: 1px solid rgba(255,255,255,0.05); text-align: center; font-size: 0.85rem; }
     th { background: #ffe600; color: #000; }
     
     .btn-danger { background: #ff3333; color: #fff; }
     .btn-success { background: #28a745; color: #fff; }
-    .btn-sm { padding: 5px 10px; font-size: 0.8rem; }
+    .btn-warning { background: #ffaa00; color: #000; }
+    .btn-sm { padding: 4px 8px; font-size: 0.75rem; border-radius: 5px; margin: 2px; }
+    .action-group { display: flex; flex-direction: column; gap: 4px; align-items: center; }
   </style>
 </head>
 <body>
@@ -56,6 +58,7 @@
         <tr>
           <th>Telegram ID</th>
           <th>Jeton Sayı</th>
+          <th>AZN Balansı</th>
           <th>Dəvət Sayı</th>
           <th>Qazandığı Hədiyyələr</th>
           <th>Status</th>
@@ -106,20 +109,38 @@
           let u = users[id];
           let prizes = u.prizes ? Object.values(u.prizes).map(p => p.prize).join(', ') : 'Yoxdur';
           let refCount = u.referralsCount || 0;
+          let azn = u.balanceAzn || 0;
           
           tbody.innerHTML += `
             <tr>
               <td>${u.tgId}</td>
-              <td><b>${u.jeton}</b></td>
-              <td><b style="color:#ffe600">${refCount} Nəfər</b></td>
+              <td><b style="color:#ffe600">${u.jeton || 0}</b></td>
+              <td><b style="color:#28a745">${azn} AZN</b></td>
+              <td><b>${refCount} Nəfər</b></td>
               <td><small>${prizes}</small></td>
               <td>${u.banned ? '<span style="color:red">Banlı</span>' : '<span style="color:green">Aktiv</span>'}</td>
               <td>
-                <button class="btn-sm btn-success" onclick="updateJeton('${u.tgId}', 1)">+1 Jeton</button>
-                <button class="btn-sm btn-danger" onclick="updateJeton('${u.tgId}', -1)">-1 Jeton</button>
-                <button class="btn-sm btn-danger" onclick="toggleBan('${u.tgId}', ${!u.banned})">
-                  ${u.banned ? 'Ban Aç' : 'Banla'}
-                </button>
+                <div class="action-group">
+                  <!-- JETON KONTROLU (Əlavə Et / Sil) -->
+                  <div>
+                    <button class="btn-sm btn-success" onclick="updateJeton('${u.tgId}', 1)">+1 Jeton</button>
+                    <button class="btn-sm btn-success" onclick="updateJeton('${u.tgId}', 5)">+5 Jeton</button>
+                    <button class="btn-sm btn-danger" onclick="updateJeton('${u.tgId}', -1)">-1 Jeton</button>
+                  </div>
+                  
+                  <!-- BALANS AZN KONTROLU (YALNIZ SİL VƏ YA SIFIRLA) -->
+                  <div>
+                    <button class="btn-sm btn-warning" onclick="clearAzn('${u.tgId}')">AZN Sıfırla (Çıxarış)</button>
+                    <button class="btn-sm btn-danger" onclick="updateAzn('${u.tgId}', -10)">-10 AZN</button>
+                  </div>
+
+                  <!-- BAN KONTROLU -->
+                  <div>
+                    <button class="btn-sm btn-danger" onclick="toggleBan('${u.tgId}', ${!u.banned})">
+                      ${u.banned ? 'Ban Aç' : 'Banla'}
+                    </button>
+                  </div>
+                </div>
               </td>
             </tr>
           `;
@@ -163,8 +184,27 @@
       });
     }
 
+    // Jeton Artır / Azalt
     function updateJeton(id, val) {
-      db.ref('users/' + id + '/jeton').transaction(current => (current || 0) + val);
+      db.ref('users/' + id + '/jeton').transaction(current => {
+        let newVal = (current || 0) + val;
+        return newVal < 0 ? 0 : newVal;
+      });
+    }
+
+    // AZN Balansından Müəyyən Qədər Sil
+    function updateAzn(id, val) {
+      db.ref('users/' + id + '/balanceAzn').transaction(current => {
+        let newVal = (current || 0) + val;
+        return newVal < 0 ? 0 : newVal;
+      });
+    }
+
+    // AZN Balansını Sıfırla (Ödəniş Edildikdə)
+    function clearAzn(id) {
+      if(confirm("İstifadəçinin AZN balansını sıfırlamaq istədiyinizdən əminsiniz?")) {
+        db.ref('users/' + id + '/balanceAzn').set(0);
+      }
     }
 
     function toggleBan(id, status) {
@@ -179,3 +219,4 @@
   </script>
 </body>
 </html>
+
