@@ -314,7 +314,6 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // Botunun dəqiq username-i təyin olundu
     const BOT_USERNAME = "sansxazbot"; 
 
     let tg = window.Telegram ? window.Telegram.WebApp : null;
@@ -332,26 +331,54 @@
     let startParam = tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param ? tg.initDataUnsafe.start_param : null;
 
     const userRef = db.ref('users/' + userId);
+
+    // Təhlükəsiz və təkrar olunmaz istifadəçi yoxlaması və referal qeydiyyatı
     userRef.once('value', (snapshot) => {
       const data = snapshot.val();
       if (!data) {
-        userRef.set({
+        // Yeni istifadəçi yaradılır
+        let newUserObj = {
           tgId: userId,
-          jeton: 5,
+          jeton: 5, // Yeni gələnlərə başlanğıc bonusu
           balanceAzn: 0,
           prizes: [],
           banned: false,
           referralsCount: 0,
           pendingRef: 0,
-          referredBy: startParam || null
-        }).then(() => {
-          if (startParam && startParam != userId) {
-            processReferral(startParam);
-          }
-        });
+          referredBy: null
+        };
+
+        // Əgər referal linki ilə gəlibsə və öz-özünü dəvət etmirsə
+        if (startParam && startParam != userId) {
+          newUserObj.referredBy = startParam;
+          
+          // Referal edən şəxsin balansını və siyahısını təhlükəsiz şəkildə yeniləyirik
+          const referrerRef = db.ref('users/' + startParam);
+          referrerRef.transaction((refUser) => {
+            if (refUser) {
+              // Əgər bu istifadəçi (userId) artıq bu refererin siyahısında yoxdursa, sayırıq
+              if (!refUser.referredUsers || !refUser.referredUsers[userId]) {
+                if (!refUser.referredUsers) refUser.referredUsers = {};
+                refUser.referredUsers[userId] = true; // Unikal olaraq qeyd edirik
+
+                refUser.referralsCount = (refUser.referralsCount || 0) + 1;
+                refUser.pendingRef = (refUser.pendingRef || 0) + 1;
+
+                if (refUser.pendingRef >= 5) {
+                  refUser.pendingRef = refUser.pendingRef - 5;
+                  refUser.jeton = (refUser.jeton || 0) + 1;
+                }
+              }
+            }
+            return refUser;
+          });
+        }
+
+        userRef.set(newUserObj);
       }
     });
 
+    // Real-time dinləyici
     userRef.on('value', (snapshot) => {
       const data = snapshot.val();
       if (data) {
@@ -370,21 +397,6 @@
         document.getElementById('totalRefCount').innerText = total;
       }
     });
-
-    function processReferral(referrerId) {
-      const refUserRef = db.ref('users/' + referrerId);
-      refUserRef.transaction((user) => {
-        if (user) {
-          user.referralsCount = (user.referralsCount || 0) + 1;
-          user.pendingRef = (user.pendingRef || 0) + 1;
-          if (user.pendingRef >= 5) {
-            user.pendingRef = user.pendingRef - 5;
-            user.jeton = (user.jeton || 0) + 1;
-          }
-        }
-        return user;
-      });
-    }
 
     function copyRefLink() {
       const copyText = document.getElementById("refLinkInput");
