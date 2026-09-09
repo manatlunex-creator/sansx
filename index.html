@@ -328,39 +328,39 @@
     let userJeton = 0;
     let userBalanceAzn = 0;
 
+    // Telegram-dan start_param-ı əldə edirik
     let startParam = tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param ? tg.initDataUnsafe.start_param : null;
 
     const userRef = db.ref('users/' + userId);
 
-    // Təhlükəsiz və təkrar olunmaz istifadəçi yoxlaması və referal qeydiyyatı
-    userRef.once('value', (snapshot) => {
-      const data = snapshot.val();
-      if (!data) {
-        // Yeni istifadəçi yaradılır
-        let newUserObj = {
+    // Yeni istifadəçi üçün 0 jetonla qeydiyyat və referal yoxlaması
+    userRef.transaction((currentUser) => {
+      if (currentUser === null) {
+        // Yeni istifadəçi yaradılır, jeton balansı 0 təyin olunur
+        currentUser = {
           tgId: userId,
-          jeton: 5, // Yeni gələnlərə başlanğıc bonusu
+          jeton: 0, // Yeni gələnlərə artıq avtomatik jeton verilmir
           balanceAzn: 0,
           prizes: [],
           banned: false,
           referralsCount: 0,
           pendingRef: 0,
-          referredBy: null
+          referredBy: startParam || null
         };
-
-        // Əgər referal linki ilə gəlibsə və öz-özünü dəvət etmirsə
-        if (startParam && startParam != userId) {
-          newUserObj.referredBy = startParam;
-          
-          // Referal edən şəxsin balansını və siyahısını təhlükəsiz şəkildə yeniləyirik
+      }
+      return currentUser;
+    }, (error, committed, snapshot) => {
+      if (!error && committed) {
+        let data = snapshot.val();
+        // Əgər özü öz linki ilə gəlməyibsə və referer mövcuddursa
+        if (startParam && startParam != userId && data.referredBy === startParam) {
           const referrerRef = db.ref('users/' + startParam);
           referrerRef.transaction((refUser) => {
             if (refUser) {
-              // Əgər bu istifadəçi (userId) artıq bu refererin siyahısında yoxdursa, sayırıq
-              if (!refUser.referredUsers || !refUser.referredUsers[userId]) {
-                if (!refUser.referredUsers) refUser.referredUsers = {};
-                refUser.referredUsers[userId] = true; // Unikal olaraq qeyd edirik
-
+              if (!refUser.referredUsers) refUser.referredUsers = {};
+              // Əgər bu istifadəçi hələ sayılmayıbsa sayırıq
+              if (!refUser.referredUsers[userId]) {
+                refUser.referredUsers[userId] = true;
                 refUser.referralsCount = (refUser.referralsCount || 0) + 1;
                 refUser.pendingRef = (refUser.pendingRef || 0) + 1;
 
@@ -373,12 +373,10 @@
             return refUser;
           });
         }
-
-        userRef.set(newUserObj);
       }
     });
 
-    // Real-time dinləyici
+    // Real-time dinləyici (Balansın və referal sayının ekranda avtomatik yenilənməsi üçün)
     userRef.on('value', (snapshot) => {
       const data = snapshot.val();
       if (data) {
@@ -547,9 +545,9 @@
         document.getElementById('boomSound').play();
         showModal("UĞURSUZ CƏHD", "Təəssüf ki, bəxtinizə bomba çıxdı. Növbəti dəfə uğurlar!", "💥");
       } else {
-        const winSound = document.getElementById('winSound');
-        winSound.currentTime = 0;
-        winSound.play();
+        const winSource = document.getElementById('winSound');
+        winSource.currentTime = 0;
+        winSource.play();
 
         confetti({ particleCount: 150, spread: 90, origin: { y: 0.6 } });
         showModal("TƏBRİKLƏR!", "Möhtəşəm hədiyyə qazandınız: " + prize.label, "🎉");
