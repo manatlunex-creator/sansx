@@ -62,7 +62,7 @@
       font-weight: 700;
     }
 
-    /* Üst Panel (Header) */
+    /* Üst Panel */
     header {
       width: 100%;
       max-width: 480px;
@@ -137,7 +137,7 @@
       filter: drop-shadow(0 0 5px var(--neon-yellow));
     }
 
-    /* Qanunvericilik və Haqqımızda */
+    /* Haqqımızda & Kanal */
     .info-section {
       width: 90%;
       max-width: 480px;
@@ -151,7 +151,6 @@
       text-align: center;
       line-height: 1.4;
     }
-
     .social-link {
       display: block;
       color: var(--neon-yellow);
@@ -160,7 +159,6 @@
       margin-top: 8px;
     }
 
-    /* Animasiyalar */
     @keyframes zoomIn {
       from { transform: scale(0.5); opacity: 0; }
       to { transform: scale(1); opacity: 1; }
@@ -224,12 +222,11 @@
     
     let userId = tg && tg.initDataUnsafe && tg.initDataUnsafe.user 
       ? tg.initDataUnsafe.user.id 
-      : "TEST_USER_12345"; // Test üçün
+      : "TEST_USER_12345";
 
     document.getElementById('user-tg-id').innerText = userId;
 
     let userJeton = 0;
-    let isBanned = false;
 
     // 3. İstifadəçi Məlumatlarını Sinxronlaşdırma
     const userRef = db.ref('users/' + userId);
@@ -243,57 +240,66 @@
         userJeton = data.jeton || 0;
         document.getElementById('jeton-display').innerText = userJeton;
       } else {
-        // Yeni İstifadəçi Qeydiyyatı
         userRef.set({
           tgId: userId,
-          jeton: 5, // Başlanğıc hədiyyəsi
+          jeton: 5,
           prizes: [],
           banned: false
         });
       }
     });
 
-    // 4. Çarx Parametrləri Və Mükafatlar
-    const canvas = document.getElementById('wheelCanvas');
-    const ctx = canvas.getContext('2d');
-    
-    // Şəkilləri daxil etmək üçün 'img' parametri saxlanılıb (Boş buraxılıb ki, özünüz şəkil path yazasınız)
+    // 4. ÇARX DİLİMLƏRİ VƏ ŞƏKİL UNVANLARI (GitHub-dakı path-lərinizi bura yazın)
     let prizes = [
-      { label: "Redmi Note 14", chance: 0, color: "#111", isBomb: false, img: "" },
-      { label: "60 PUBG UC", chance: 0, color: "#ffe600", isBomb: false, img: "" },
-      { label: "60 PUBG UC", chance: 0, color: "#111", isBomb: false, img: "" },
-      { label: "500 Tiktok Jeton", chance: 0, color: "#ffe600", isBomb: false, img: "" },
-      { label: "500 Tiktok Jeton", chance: 0, color: "#111", isBomb: false, img: "" },
-      { label: "500 Tiktok Jeton", chance: 0, color: "#ffe600", isBomb: false, img: "" },
-      { label: "5 Free Spin", chance: 40, color: "#111", isBomb: false, img: "" },
-      { label: "5 Free Spin", chance: 40, color: "#ffe600", isBomb: false, img: "" },
-      { label: "5 Free Spin", chance: 40, color: "#111", isBomb: false, img: "" },
-      { label: "20 AZN Mükafat", chance: 0, color: "#ffe600", isBomb: false, img: "" },
-      { label: "BOMBA", chance: 95, color: "#000", isBomb: true, img: "" },
-      { label: "BOMBA", chance: 95, color: "#ffe600", isBomb: true, img: "" },
-      { label: "BOMBA", chance: 95, color: "#000", isBomb: true, img: "" },
-      { label: "BOMBA", chance: 95, color: "#ffe600", isBomb: true, img: "" },
-      { label: "BOMBA", chance: 95, color: "#000", isBomb: true, img: "" },
-      { label: "BOMBA", chance: 95, color: "#ffe600", isBomb: true, img: "" },
-      { label: "BOMBA", chance: 95, color: "#000", isBomb: true, img: "" },
-      { label: "BOMBA", chance: 95, color: "#ffe600", isBomb: true, img: "" },
-      { label: "BOMBA", chance: 95, color: "#000", isBomb: true, img: "" },
-      { label: "BOMBA", chance: 95, color: "#ffe600", isBomb: true, img: "" }
+      { label: "Redmi Note 14", chance: 0, color: "#111", isBomb: false, img: "img/redmi.png" },
+      { label: "60 PUBG UC", chance: 0, color: "#ffe600", isBomb: false, img: "img/uc.png" },
+      { label: "60 PUBG UC", chance: 0, color: "#111", isBomb: false, img: "img/uc.png" },
+      { label: "500 Tiktok", chance: 0, color: "#ffe600", isBomb: false, img: "img/tiktok.png" },
+      { label: "500 Tiktok", chance: 0, color: "#111", isBomb: false, img: "img/tiktok.png" },
+      { label: "500 Tiktok", chance: 0, color: "#ffe600", isBomb: false, img: "img/tiktok.png" },
+      { label: "5 Free Spin", chance: 40, color: "#111", isBomb: false, img: "img/spin.png" },
+      { label: "5 Free Spin", chance: 40, color: "#ffe600", isBomb: false, img: "img/spin.png" },
+      { label: "5 Free Spin", chance: 40, color: "#111", isBomb: false, img: "img/spin.png" },
+      { label: "20 AZN", chance: 0, color: "#ffe600", isBomb: false, img: "img/azn.png" },
+      { label: "BOMBA", chance: 95, color: "#000", isBomb: true, img: "img/bomba.png" },
+      { label: "BOMBA", chance: 95, color: "#ffe600", isBomb: true, img: "img/bomba.png" },
+      { label: "BOMBA", chance: 95, color: "#000", isBomb: true, img: "img/bomba.png" },
+      { label: "BOMBA", chance: 95, color: "#ffe600", isBomb: true, img: "img/bomba.png" },
+      { label: "BOMBA", chance: 95, color: "#000", isBomb: true, img: "img/bomba.png" },
+      { label: "BOMBA", chance: 95, color: "#ffe600", isBomb: true, img: "img/bomba.png" },
+      { label: "BOMBA", chance: 95, color: "#000", isBomb: true, img: "img/bomba.png" },
+      { label: "BOMBA", chance: 95, color: "#ffe600", isBomb: true, img: "img/bomba.png" },
+      { label: "BOMBA", chance: 95, color: "#000", isBomb: true, img: "img/bomba.png" },
+      { label: "BOMBA", chance: 95, color: "#ffe600", isBomb: true, img: "img/bomba.png" }
     ];
 
-    // Şansları Admin Paneldən Canlı Oxumaq
+    // Şəkilləri əvvəldən yaddaşa yükləmək (Preload)
+    const loadedImages = {};
+    prizes.forEach((p, idx) => {
+      if (p.img) {
+        let img = new Image();
+        img.src = p.img;
+        loadedImages[idx] = img;
+      }
+    });
+
+    // Admin Şans Tənzimləmələri
     db.ref('settings/prizes').on('value', (snap) => {
       const data = snap.val();
-      if (data) prizes = data;
+      if (data) {
+        data.forEach((p, i) => { if(prizes[i]) prizes[i].chance = p.chance; });
+      }
       drawWheel();
     });
 
+    const canvas = document.getElementById('wheelCanvas');
+    const ctx = canvas.getContext('2d');
     const numSlices = prizes.length;
     const sliceAngle = (2 * Math.PI) / numSlices;
     let currentAngle = 0;
     let isSpinning = false;
 
-    // Çarxı Çəkmək (Sarı Və Qara Konsepsiyası)
+    // Çarxı Çəkmək (Mətn və Şəkil Yerləşimi)
     function drawWheel() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       for (let i = 0; i < numSlices; i++) {
@@ -304,33 +310,30 @@
         ctx.arc(200, 200, 190, angle, angle + sliceAngle);
         ctx.fillStyle = prizes[i].color === "#ffe600" ? "#ffe600" : "#141419";
         ctx.fill();
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 1.5;
         ctx.strokeStyle = "#ffe600";
         ctx.stroke();
 
-        // Mətnlərin Yazılması
         ctx.save();
         ctx.translate(200, 200);
         ctx.rotate(angle + sliceAngle / 2);
+        
+        // Mətn yazısı
         ctx.textAlign = "right";
         ctx.fillStyle = prizes[i].color === "#ffe600" ? "#000" : "#fff";
-        ctx.font = "bold 11px Poppins";
-        
-        /* ŞƏKİL ƏLAVƏ ETMƏK ÜÇÜN DÜZƏLİŞ BÖLMƏSİ:
-           Eger sekil path-i təyin etsəniz aşağıdaki şəkil kodu aktiv olacaq.
-        */
-        if(prizes[i].img) {
-          let imgObj = new Image();
-          imgObj.src = prizes[i].img;
-          ctx.drawImage(imgObj, 100, -10, 20, 20);
+        ctx.font = "bold 10px Poppins";
+        ctx.fillText(prizes[i].label, 140, 4);
+
+        // Şəkil çəkilməsi
+        if (loadedImages[i] && loadedImages[i].complete) {
+          ctx.drawImage(loadedImages[i], 148, -10, 20, 20);
         }
 
-        ctx.fillText(prizes[i].label, 170, 4);
         ctx.restore();
       }
     }
 
-    // 5. Çarxı Fırlatmaq Məntiqi (Ehtimal Sistemi İlə)
+    // 5. Çarxı Fırlatmaq Məntiqi
     function spinWheel() {
       if (isSpinning) return;
       if (userJeton < 1) {
@@ -338,30 +341,26 @@
         return;
       }
 
-      // Jetonu Azalt
       userJeton--;
       userRef.update({ jeton: userJeton });
 
       isSpinning = true;
       document.getElementById('spinSound').play();
 
-      // Şanslara Görə Seçim (Weighted Random)
       let selectedIndex = getWeightedPrizeIndex();
 
-      // Hesablanmış Bucağa Fırlatma
       let stopAngle = (3 * Math.PI / 2) - (selectedIndex * sliceAngle) - (sliceAngle / 2);
-      let extraTurns = 5 * 2 * Math.PI; // 5 tam dövr
+      let extraTurns = 5 * 2 * Math.PI;
       let targetRotation = extraTurns + stopAngle;
 
       let startTime = null;
-      let duration = 5000; // 5 Saniyə
+      let duration = 5000;
 
       function animateSpin(timestamp) {
         if (!startTime) startTime = timestamp;
         let progress = (timestamp - startTime) / duration;
 
         if (progress < 1) {
-          // Ease-out effekti
           let easeOut = 1 - Math.pow(1 - progress, 3);
           currentAngle = easeOut * targetRotation;
           drawWheel();
@@ -376,7 +375,6 @@
       requestAnimationFrame(animateSpin);
     }
 
-    // Şans Faizinə Görə Mükafat Seçimi
     function getWeightedPrizeIndex() {
       let totalWeight = prizes.reduce((sum, p) => sum + p.chance, 0);
       let randomNum = Math.random() * totalWeight;
@@ -386,10 +384,9 @@
         weightSum += prizes[i].chance;
         if (randomNum <= weightSum) return i;
       }
-      return prizes.length - 1; // Default sonuncu
+      return prizes.length - 1;
     }
 
-    // Uduş Nəticəsi
     function handleWin(prize) {
       document.getElementById('spinSound').pause();
       document.getElementById('spinSound').currentTime = 0;
@@ -402,7 +399,6 @@
         confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
         alert("🎉 TƏBRİKLƏR! Qazandınız: " + prize.label);
         
-        // Verilənlər bazasına uduşu yazmaq
         userRef.child('prizes').push({
           prize: prize.label,
           date: new Date().toISOString()
@@ -410,7 +406,8 @@
       }
     }
 
-    drawWheel();
+    // Şəkillərin yüklənməsini gözləyib çəkmək
+    setTimeout(drawWheel, 1000);
   </script>
 </body>
 </html>
