@@ -3,21 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <title>ŞansX - Admin Panel</title>
-  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 
   <style>
-    body {
-      background-color: #0d0d11;
-      color: #fff;
-      font-family: 'Poppins', sans-serif;
-      padding: 20px;
-    }
+    body { background-color: #0d0d11; color: #fff; font-family: 'Poppins', sans-serif; padding: 20px; }
     h1, h2 { font-family: 'Orbitron', sans-serif; color: #ffe600; text-align: center; }
     
-    /* Login Ekranı */
     #login-modal {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background: #0d0d11; display: flex; flex-direction: column;
@@ -32,7 +25,6 @@
       border-radius: 8px; cursor: pointer; font-family: 'Orbitron', sans-serif;
     }
 
-    /* Panellər */
     .dashboard { display: none; max-width: 1000px; margin: 0 auto; }
     table {
       width: 100%; border-collapse: collapse; margin-top: 20px;
@@ -48,7 +40,6 @@
 </head>
 <body>
 
-  <!-- Giriş Bölməsi -->
   <div id="login-modal">
     <h1>ADMIN LOGIN</h1>
     <input type="text" id="adminUser" placeholder="İstifadəçi Adı">
@@ -56,11 +47,9 @@
     <button onclick="login()">Daxil Ol</button>
   </div>
 
-  <!-- Dashboard -->
   <div class="dashboard" id="dashboard">
     <h1>Sistem İdarəetmə Paneli</h1>
     
-    <!-- İstifadəçilər Cədvəli -->
     <h2>İstifadəçilər</h2>
     <table>
       <thead>
@@ -75,7 +64,6 @@
       <tbody id="userTable"></tbody>
     </table>
 
-    <!-- Şans Tənzimləmələri -->
     <h2 style="margin-top: 40px;">Mükafat Şansları (Chances)</h2>
     <table>
       <thead>
@@ -94,7 +82,6 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // Giriş yoxlaması
     function login() {
       const u = document.getElementById('adminUser').value;
       const p = document.getElementById('adminPass').value;
@@ -137,11 +124,30 @@
         }
       });
 
-      // Mükafat Şanslarını Oxu
+      // Çarxdakı Mükafatları və Şansları Oxu
+      const defaultPrizes = [
+        { label: "Redmi Note 14", chance: 0 },
+        { label: "BOMBA", chance: 95 },
+        { label: "60 PUBG UC", chance: 0 },
+        { label: "BOMBA", chance: 95 },
+        { label: "500 Tiktok", chance: 0 },
+        { label: "BOMBA", chance: 95 },
+        { label: "5 Free Spin", chance: 40 },
+        { label: "BOMBA", chance: 95 },
+        { label: "20 AZN", chance: 0 },
+        { label: "BOMBA", chance: 95 },
+        { label: "5 Free Spin", chance: 40 },
+        { label: "BOMBA", chance: 95 }
+      ];
+
       db.ref('settings/prizes').on('value', snap => {
-        const prizes = snap.val();
+        let prizes = snap.val();
+        if(!prizes) {
+          db.ref('settings/prizes').set(defaultPrizes);
+          prizes = defaultPrizes;
+        }
+
         const tbody = document.getElementById('prizeTable');
-        if(!prizes) return;
         tbody.innerHTML = '';
 
         prizes.forEach((p, index) => {
@@ -172,4 +178,3 @@
   </script>
 </body>
 </html>
-
