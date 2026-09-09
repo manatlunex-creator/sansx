@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+  <meta charset="UTF-8">
+  <title>ŞansX - Admin Panel</title>
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      background-color: #0d0d11;
+      color: #fff;
+      font-family: 'Poppins', sans-serif;
+      padding: 20px;
+    }
+    h1, h2 { font-family: 'Orbitron', sans-serif; color: #ffe600; text-align: center; }
+    
+    /* Login Ekranı */
+    #login-modal {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: #0d0d11; display: flex; flex-direction: column;
+      justify-content: center; align-items: center; gap: 15px; z-index: 1000;
+    }
+    input {
+      padding: 12px; border-radius: 8px; border: 1px solid #ffe600;
+      background: #1a1a24; color: #fff; width: 250px; text-align: center;
+    }
+    button {
+      padding: 10px 20px; background: #ffe600; border: none; font-weight: bold;
+      border-radius: 8px; cursor: pointer; font-family: 'Orbitron', sans-serif;
+    }
+
+    /* Panellər */
+    .dashboard { display: none; max-width: 1000px; margin: 0 auto; }
+    table {
+      width: 100%; border-collapse: collapse; margin-top: 20px;
+      background: #141419; border-radius: 10px; overflow: hidden;
+    }
+    th, td { padding: 12px; border: 1px solid rgba(255,255,255,0.05); text-align: center; }
+    th { background: #ffe600; color: #000; }
+    
+    .btn-danger { background: #ff3333; color: #fff; }
+    .btn-success { background: #28a745; color: #fff; }
+    .btn-sm { padding: 5px 10px; font-size: 0.8rem; }
+  </style>
+</head>
+<body>
+
+  <!-- Giriş Bölməsi -->
+  <div id="login-modal">
+    <h1>ADMIN LOGIN</h1>
+    <input type="text" id="adminUser" placeholder="İstifadəçi Adı">
+    <input type="password" id="adminPass" placeholder="Parol">
+    <button onclick="login()">Daxil Ol</button>
+  </div>
+
+  <!-- Dashboard -->
+  <div class="dashboard" id="dashboard">
+    <h1>Sistem İdarəetmə Paneli</h1>
+    
+    <!-- İstifadəçilər Cədvəli -->
+    <h2>İstifadəçilər</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Telegram ID</th>
+          <th>Jeton Sayı</th>
+          <th>Qazandığı Hədiyyələr</th>
+          <th>Status</th>
+          <th>Əməliyyatlar</th>
+        </tr>
+      </thead>
+      <tbody id="userTable"></tbody>
+    </table>
+
+    <!-- Şans Tənzimləmələri -->
+    <h2 style="margin-top: 40px;">Mükafat Şansları (Chances)</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Mükafat Adı</th>
+          <th>Şans Faizi (%)</th>
+          <th>Yenilə</th>
+        </tr>
+      </thead>
+      <tbody id="prizeTable"></tbody>
+    </table>
+  </div>
+
+  <script>
+    const firebaseConfig = { databaseURL: "https://ugur-8496e-default-rtdb.firebaseio.com/" };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // Giriş yoxlaması
+    function login() {
+      const u = document.getElementById('adminUser').value;
+      const p = document.getElementById('adminPass').value;
+
+      if (u === "K9ESCOBAR211_" && p === "AA555_67") {
+        document.getElementById('login-modal').style.display = 'none';
+        document.getElementById('dashboard').style.display = 'block';
+        loadAdminData();
+      } else {
+        alert("İstifadəçi adı və ya parol səhvdir!");
+      }
+    }
+
+    function loadAdminData() {
+      // İstifadəçiləri Oxu
+      db.ref('users').on('value', snap => {
+        const users = snap.val();
+        const tbody = document.getElementById('userTable');
+        tbody.innerHTML = '';
+
+        for (let id in users) {
+          let u = users[id];
+          let prizes = u.prizes ? Object.values(u.prizes).map(p => p.prize).join(', ') : 'Yoxdur';
+          
+          tbody.innerHTML += `
+            <tr>
+              <td>${u.tgId}</td>
+              <td><b>${u.jeton}</b></td>
+              <td><small>${prizes}</small></td>
+              <td>${u.banned ? '<span style="color:red">Banlı</span>' : '<span style="color:green">Aktiv</span>'}</td>
+              <td>
+                <button class="btn-sm btn-success" onclick="updateJeton('${u.tgId}', 1)">+1 Jeton</button>
+                <button class="btn-sm btn-danger" onclick="updateJeton('${u.tgId}', -1)">-1 Jeton</button>
+                <button class="btn-sm btn-danger" onclick="toggleBan('${u.tgId}', ${!u.banned})">
+                  ${u.banned ? 'Ban Aç' : 'Banla'}
+                </button>
+              </td>
+            </tr>
+          `;
+        }
+      });
+
+      // Mükafat Şanslarını Oxu
+      db.ref('settings/prizes').on('value', snap => {
+        const prizes = snap.val();
+        const tbody = document.getElementById('prizeTable');
+        if(!prizes) return;
+        tbody.innerHTML = '';
+
+        prizes.forEach((p, index) => {
+          tbody.innerHTML += `
+            <tr>
+              <td>${p.label}</td>
+              <td><input type="number" id="chance-${index}" value="${p.chance}" style="width:70px;"></td>
+              <td><button class="btn-sm" onclick="saveChance(${index})">Yadda Saqla</button></td>
+            </tr>
+          `;
+        });
+      });
+    }
+
+    function updateJeton(id, val) {
+      db.ref('users/' + id + '/jeton').transaction(current => (current || 0) + val);
+    }
+
+    function toggleBan(id, status) {
+      db.ref('users/' + id + '/banned').set(status);
+    }
+
+    function saveChance(index) {
+      const val = parseInt(document.getElementById(`chance-${index}`).value);
+      db.ref(`settings/prizes/${index}/chance`).set(val);
+      alert("Şans yeniləndi!");
+    }
+  </script>
+</body>
+</html>
+
