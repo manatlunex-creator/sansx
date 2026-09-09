@@ -304,7 +304,7 @@
     <a href="https://t.me/+LQVyKseQ6foxNGFh" target="_blank" class="social-link">📢 Rəsmi Telegram Kanalımıza Qoşulun</a>
   </div>
 
-  <!-- Səs Effektləri (Şən Uduş və Fırlatma Səsi) -->
+  <!-- Səs Effektləri -->
   <audio id="spinSound" src="https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3"></audio>
   <audio id="winSound" src="https://assets.mixkit.co/active_storage/sfx/270/270-preview.mp3"></audio>
   <audio id="boomSound" src="https://assets.mixkit.co/active_storage/sfx/220/220-preview.mp3"></audio>
@@ -314,7 +314,8 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    const BOT_USERNAME = "Sansx_Bot"; 
+    // Botunun dəqiq username-i təyin olundu
+    const BOT_USERNAME = "sansxazbot"; 
 
     let tg = window.Telegram ? window.Telegram.WebApp : null;
     if (tg) tg.expand();
